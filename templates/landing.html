@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FlowPilot — A/B Demo</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <main class="hero">
+    <div class="nav"><strong>FlowPilot</strong><span>Product • Pricing • Resources</span></div>
+    <section class="hero-card">
+      <p class="eyebrow">WORK SMARTER, NOT LONGER</p>
+      <h1>One workspace for projects, notes and team decisions.</h1>
+      <p class="sub">Plan work, share updates and keep your team aligned without drowning in meetings.</p>
+      <button id="cta" class="cta">
+        {{CTA}}
+      </button>
+      <p class="micro">No credit card required • Cancel anytime</p>
+      <p class="variant">Experiment variant {{VARIANT}}</p>
+    </section>
+  </main>
+<script>
+  document.getElementById('cta').addEventListener('click', async () => {
+    await fetch('/api/click', {method: 'POST', headers: {'Content-Type':'application/json'}, body:'{}'});
+    const button = document.getElementById('cta');
+    button.textContent = 'Thanks — click recorded';
+    button.disabled = true;
+  });
+</script>
+</body>
+</html>

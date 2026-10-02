@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A/B Test Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <main class="dashboard">
+    <div class="dash-head">
+      <div>
+        <p class="eyebrow">LIVE EXPERIMENT</p>
+        <h1>A/B test results</h1>
+        <p class="sub">A = “Learn more” • B = “Start free trial”</p>
+      </div>
+      <button id="reset" class="ghost">Reset experiment</button>
+    </div>
+
+    <div class="grid two">
+      <section class="metric-card">
+        <span>Variant A</span>
+        <strong id="a-rate">–</strong>
+        <small id="a-detail">0 / 0 clicks</small>
+      </section>
+      <section class="metric-card">
+        <span>Variant B</span>
+        <strong id="b-rate">–</strong>
+        <small id="b-detail">0 / 0 clicks</small>
+      </section>
+    </div>
+
+    <div class="grid four">
+      <section class="mini"><span>Total visitors</span><strong id="total">0</strong></section>
+      <section class="mini"><span>Relative lift</span><strong id="lift">–</strong></section>
+      <section class="mini"><span>p-value</span><strong id="pvalue">–</strong></section>
+      <section class="mini"><span>95% CI</span><strong id="ci">–</strong></section>
+    </div>
+
+    <section class="decision">
+      <span>Statistical decision at α = 0.05</span>
+      <h2 id="decision">Waiting for data</h2>
+      <p id="interpretation">Generate virtual traffic, then interpret the result.</p>
+    </section>
+
+    <section class="method">
+      <h3>What this demo calculates</h3>
+      <p>Two-proportion z-test, two-sided p-value, 95% confidence interval for the absolute conversion difference, and relative lift.</p>
+      <p class="note">Synthetic traffic demonstrates the A/B testing process. It does not prove how real people would behave.</p>
+    </section>
+  </main>
+<script>
+  const pct = x => x === null || x === undefined ? '–' : (x * 100).toFixed(2) + '%';
+  const num = x => x === null || x === undefined ? '–' : Number(x).toFixed(4);
+
+  async function refresh() {
+    const r = await fetch('/api/results');
+    const d = await r.json();
+    document.getElementById('a-rate').textContent = pct(d.a.rate);
+    document.getElementById('b-rate').textContent = pct(d.b.rate);
+    document.getElementById('a-detail').textContent = `${d.a.clicks} / ${d.a.visitors} clicks`;
+    document.getElementById('b-detail').textContent = `${d.b.clicks} / ${d.b.visitors} clicks`;
+    document.getElementById('total').textContent = d.total_visitors;
+    document.getElementById('lift').textContent = pct(d.relative_lift);
+    document.getElementById('pvalue').textContent = d.p_value === null ? '–' : num(d.p_value);
+    document.getElementById('ci').textContent = d.ci95.low === null ? '–' : `${pct(d.ci95.low)} … ${pct(d.ci95.high)}`;
+
+    const decision = document.getElementById('decision');
+    const interpretation = document.getElementById('interpretation');
+    if (!d.a.visitors || !d.b.visitors || d.p_value === null) {
+      decision.textContent = 'Waiting for data';
+      interpretation.textContent = 'Generate virtual traffic, then interpret the result.';
+    } else if (d.significant_05) {
+      decision.textContent = 'Statistically significant difference';
+      interpretation.textContent = `p = ${num(d.p_value)}. At the 5% threshold, the observed A/B difference is statistically significant. Check effect size and business relevance before rollout.`;
+    } else {
+      decision.textContent = 'Not statistically significant';
+      interpretation.textContent = `p = ${num(d.p_value)}. With the current sample, we do not have enough evidence to reject H₀ at α = 0.05.`;
+    }
+  }
+
+  document.getElementById('reset').addEventListener('click', async () => {
+    await fetch('/api/reset', {method:'POST'});
+    await refresh();
+  });
+
+  refresh();
+  setInterval(refresh, 1000);
+</script>
+</body>
+</html>
